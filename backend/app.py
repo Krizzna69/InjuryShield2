@@ -11,8 +11,9 @@ app.secret_key = "running_injury_analysis_secret_key"
 CORS(app)  # Enable CORS for all routes
 
 # Configure upload and results folders
-UPLOAD_FOLDER = os.path.join('static', 'uploads')
-RESULTS_FOLDER = os.path.join('static', 'results')
+BASE_DIR = r"C:/Users/jaswa/PycharmProjects/sportswithreact/backend/static"
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
+RESULTS_FOLDER = os.path.join(BASE_DIR, 'results')
 ALLOWED_EXTENSIONS = {'mp4', 'mov', 'avi', 'mkv', 'webm'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -156,6 +157,42 @@ def get_analysis_results(analysis_id):
         return jsonify({'error': str(e)}), 500
 
 
+    # Print debug information
+    print(f"Sending file: {file_path}")
+    
+    try:
+        return send_from_directory(analysis_dir, filename, as_attachment=True)
+    except Exception as e:
+        print(f"Error sending file: {e}")
+        return jsonify({'error': f'Error serving file: {str(e)}'}), 500
+    
+@app.route('/api/files/<analysis_id>', methods=['GET'])
+def list_analysis_files(analysis_id):
+    """List all files in the analysis directory (for debugging)"""
+    analysis_dir = os.path.join(app.config['RESULTS_FOLDER'], analysis_id)
+    
+    if not os.path.exists(analysis_dir):
+        return jsonify({'error': 'Analysis directory not found'}), 404
+        
+    files = []
+    try:
+        for fname in os.listdir(analysis_dir):
+            file_path = os.path.join(analysis_dir, fname)
+            file_info = {
+                'name': fname,
+                'size': os.path.getsize(file_path),
+                'modified': os.path.getmtime(file_path)
+            }
+            files.append(file_info)
+            
+        return jsonify({
+            'analysis_id': analysis_id,
+            'directory': analysis_dir,
+            'files': files
+        })
+    except Exception as e:
+        return jsonify({'error': f'Error listing files: {str(e)}'}), 500
+
 @app.route('/api/video/<analysis_id>', methods=['GET'])
 def stream_video(analysis_id):
     """Stream video with proper support for range requests"""
@@ -221,8 +258,30 @@ def download_analysis_file(analysis_id, file_type):
     """API endpoint for downloading files"""
     analysis_dir = os.path.join(app.config['RESULTS_FOLDER'], analysis_id)
 
+    if not os.path.exists(analysis_dir):
+        return jsonify({'error': 'Analysis not found'}), 404
+
     if file_type == 'video':
-        filename = 'analyzed_video.mp4'
+        # Try multiple possible filenames for the video
+        possible_filenames = ['analyzed_video.mp4', 'compressed_video.mp4', 'video.mp4']
+        
+        # Find the first matching file
+        filename = None
+        for fname in possible_filenames:
+            if os.path.exists(os.path.join(analysis_dir, fname)):
+                filename = fname
+                break
+        
+        # If no matching file found, try to find any MP4 file
+        if not filename:
+            for fname in os.listdir(analysis_dir):
+                if fname.endswith('.mp4'):
+                    filename = fname
+                    break
+                    
+        if not filename:
+            return jsonify({'error': 'Video file not found in analysis directory'}), 404
+            
     elif file_type == 'report':
         filename = 'analysis_report.txt'
     elif file_type == 'plot':
@@ -230,10 +289,10 @@ def download_analysis_file(analysis_id, file_type):
     else:
         return jsonify({'error': 'Invalid file type'}), 400
 
-    if not os.path.exists(os.path.join(analysis_dir, filename)):
-        return jsonify({'error': 'File not found'}), 404
-        
-    return send_from_directory(analysis_dir, filename, as_attachment=True)
+    file_path = os.path.join(analysis_dir, filename)
+    if not os.path.exists(file_path):
+        return jsonify({'error': f'File {filename} not found'}), 404
+    
 
 
 # Serve React app - All other routes will be handled by React Router
