@@ -1,0 +1,15 @@
+===== RUNNING INJURY RISK ANALYSIS =====
+Overall Risk Level: Moderate (0.40)
+Peak Risk Level: Moderate (0.58)
+
+Identified Risk Factors:
+- Knee Valgus
+- Improper Stride Width
+
+Recommendations:
+1. Strengthen hip abductors (gluteus medius) with exercises like clamshells, side leg raises, and band walks
+2. Focus on knee alignment during squats and running drills
+3. Work on running form drills focusing on proper foot placement
+4. Consider gait analysis with a physical therapist
+
+Analyzed video: static\results\30e703d0-3652-40a4-bd96-2a82cc766009\analyzed_video.mp4
